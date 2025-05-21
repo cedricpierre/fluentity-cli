@@ -1,0 +1,15 @@
+{
+  "name": "@fluentity/cli",
+  "version": "1.0.0",
+  "description": "Fluentity CLI",
+  "main": "index.ts",
+  "bin": {
+    "fluentity": "./bin/fluentity.js"
+  },
+  "scripts": {
+    
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
