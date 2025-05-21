@@ -1,0 +1,181 @@
+import Event from '../../event/Event.js';
+import * as PropertySymbol from '../../PropertySymbol.js';
+import INamedNodeMap from '../../named-node-map/INamedNodeMap.js';
+import ValidityState from '../../validity-state/ValidityState.js';
+import HTMLElement from '../html-element/HTMLElement.js';
+import IHTMLFormElement from '../html-form-element/IHTMLFormElement.js';
+import IHTMLLabelElement from '../html-label-element/IHTMLLabelElement.js';
+import INode from '../node/INode.js';
+import INodeList from '../node/INodeList.js';
+import IHTMLButtonElement from './IHTMLButtonElement.js';
+/**
+ * HTML Button Element.
+ *
+ * Reference:
+ * https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement.
+ */
+export default class HTMLButtonElement extends HTMLElement implements IHTMLButtonElement {
+    #private;
+    [PropertySymbol.attributes]: INamedNodeMap;
+    [PropertySymbol.validationMessage]: string;
+    [PropertySymbol.validity]: ValidityState;
+    /**
+     * Returns validation message.
+     *
+     * @returns Validation message.
+     */
+    get validationMessage(): string;
+    /**
+     * Returns validity.
+     *
+     * @returns Validity.
+     */
+    get validity(): ValidityState;
+    /**
+     * Returns name.
+     *
+     * @returns Name.
+     */
+    get name(): string;
+    /**
+     * Sets name.
+     *
+     * @param name Name.
+     */
+    set name(name: string);
+    /**
+     * Returns value.
+     *
+     * @returns Value.
+     */
+    get value(): string;
+    /**
+     * Sets value.
+     *
+     * @param value Value.
+     */
+    set value(value: string);
+    /**
+     * Returns disabled.
+     *
+     * @returns Disabled.
+     */
+    get disabled(): boolean;
+    /**
+     * Sets disabled.
+     *
+     * @param disabled Disabled.
+     */
+    set disabled(disabled: boolean);
+    /**
+     * Returns type
+     *
+     * @returns Type
+     */
+    get type(): string;
+    /**
+     * Sets type
+     *
+     * @param v Type
+     */
+    set type(v: string);
+    /**
+     * Returns form action.
+     *
+     * @returns Form action.
+     */
+    get formAction(): string;
+    /**
+     * Sets form action.
+     *
+     * @param formAction Form action.
+     */
+    set formAction(formAction: string);
+    /**
+     * Returns form enctype.
+     *
+     * @returns Form enctype.
+     */
+    get formEnctype(): string;
+    /**
+     * Sets form enctype.
+     *
+     * @param formEnctype Form enctype.
+     */
+    set formEnctype(formEnctype: string);
+    /**
+     * Returns form method.
+     *
+     * @returns Form method.
+     */
+    get formMethod(): string;
+    /**
+     * Sets form method.
+     *
+     * @param formMethod Form method.
+     */
+    set formMethod(formMethod: string);
+    /**
+     * Returns no validate.
+     *
+     * @returns No validate.
+     */
+    get formNoValidate(): boolean;
+    /**
+     * Sets no validate.
+     *
+     * @param formNoValidate No validate.
+     */
+    set formNoValidate(formNoValidate: boolean);
+    /**
+     * Returns form target.
+     *
+     * @returns Form target.
+     */
+    get formTarget(): string;
+    /**
+     * Sets form target.
+     *
+     * @param formTarget Form target.
+     */
+    set formTarget(formTarget: string);
+    /**
+     * Returns the parent form element.
+     *
+     * @returns Form.
+     */
+    get form(): IHTMLFormElement | null;
+    /**
+     * Returns the associated label elements.
+     *
+     * @returns Label elements.
+     */
+    get labels(): INodeList<IHTMLLabelElement>;
+    /**
+     * Checks validity.
+     *
+     * @returns "true" if the field is valid.
+     */
+    checkValidity(): boolean;
+    /**
+     * Reports validity.
+     *
+     * @returns Validity.
+     */
+    reportValidity(): boolean;
+    /**
+     * Sets validation message.
+     *
+     * @param message Message.
+     */
+    setCustomValidity(message: string): void;
+    /**
+     * @override
+     */
+    dispatchEvent(event: Event): boolean;
+    /**
+     * @override
+     */
+    [PropertySymbol.connectToNode](parentNode?: INode): void;
+}
+//# sourceMappingURL=HTMLButtonElement.d.ts.map
