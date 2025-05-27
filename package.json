@@ -1,6 +1,6 @@
 {
   "name": "@fluentity/cli",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Fluentity CLI for model generation",
   "type": "module",
   "main": "dist/index.js",
@@ -8,12 +8,12 @@
     "fluentity": "./bin/fluentity.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --out-dir dist --no-minify",
-    "start": "node ./bin/fluentity.js",
-    "dev": "tsup src/index.ts --format esm --watch --out-dir dist --no-minify",
-    "test": "vitest __tests__",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "start": "bun ./bin/fluentity.js",
+    "dev": "bun build ./src/index.ts --outdir ./dist --watch --target node",
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "test:ui": "bun test --ui"
   },
   "keywords": [
     "fluentity",
@@ -22,7 +22,7 @@
   ],
   "author": "Cedric Pierre",
   "email": "jirotoh@gmail.com",
-  "packageManager": "pnpm@8.0.0",
+  "packageManager": "bun@1.0.35",
   "license": "MIT",
   "dependencies": {
     "commander": "^11.1.0",
@@ -39,13 +39,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.7",
     "@types/node": "^20.11.24",
-    "typescript": "^5.3.3",
-    "ts-node": "^10.9.2",
-    "vitest": "^1.3.1",
-    "@vitest/coverage-v8": "^1.3.1",
-    "@vitest/ui": "^1.3.1",
-    "happy-dom": "^13.3.8",
-    "tsup": "^8.0.2"
+    "typescript": "^5.4.2"
   },
   "files": [
     "dist",
