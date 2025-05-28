@@ -29,12 +29,23 @@ fluentity generate:model [name] --path ./custom/path --force
 
 ### Commands
 
-#### `generate:model`
+#### `generate:model [name]`
 
 Generates a new Fluentity model with the specified name.
 
 **Arguments:**
 - `[name]` - Name of the model to generate (optional)
+
+**Options:**
+- `-p, --path <path>` - Path where the model should be generated (default: './src/models')
+- `-f, --force` - Overwrite existing model file if it exists
+
+#### `parse:openapi [filename]`
+
+Generates all Fluentity models from a JSON OpenAPI file.
+
+**Arguments:**
+- `[filename]` - Name of the JSON file to parse
 
 **Options:**
 - `-p, --path <path>` - Path where the model should be generated (default: './src/models')

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { generateModel } from './commands/generate-model.js';
+import { GenerateModel } from './commands/generate-model.js';
+import { OpenAPIParser } from './commands/parse-openapi.js';
 import chalk from 'chalk';
 
 const program = new Command();
@@ -19,7 +20,23 @@ program
   .option('-f, --force', 'Overwrite existing model file if it exists')
   .action(async (name, options) => {
     try {
-      await generateModel(name, options);
+      const generate = new GenerateModel(name, options);
+      generate.execute();
+    } catch (error) {
+      console.error(chalk.red('Error:'), error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('parse:openapi')
+  .description('Parse an OpenAPI schema file and generate models')
+  .argument('<schema>', 'Path to the OpenAPI schema file')
+  .option('-p, --path <path>', 'Path where the model should be generated', './src/models')
+  .action(async (schema, options) => {
+    try {
+      const parser = await new OpenAPIParser(schema, options)
+      parser.execute();
     } catch (error) {
       console.error(chalk.red('Error:'), error);
       process.exit(1);

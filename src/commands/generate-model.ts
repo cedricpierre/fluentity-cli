@@ -55,55 +55,63 @@ export interface ModelAttributes {
   }>;
 }
 
-export async function generateModel(name?: string, options: GenerateModelOptions = { path: './src/models', force: false }): Promise<void> {
-  // If name is not provided, prompt for it
-  const modelName = name || (await inquirer.prompt([{
-    type: 'input',
-    name: 'name',
-    message: 'What is the name of your model?',
-    validate: (input: string) => input.length > 0 ? true : 'Model name is required'
-  }])).name;
+export class GenerateModel {
+  constructor(private name?: string, private options: GenerateModelOptions = { path: './src/models', force: false }) {}
 
-  // Prompt for attributes
-  const attributes = await promptForAttributes();
-  
-  // Prompt for relations
-  const relations = await promptForRelations();
-
-  const modelData: ModelAttributes = {
-    name: modelName,
-    attributes,
-    relations
-  };
-
-  // Generate the model file
-  const content = template({
-    ...modelData,
-    resourceName: modelName.toLowerCase() + 's'
-  });
-
-  const filePath = path.join(options.path, `${modelName}.ts`);
-  
-  // Create directory if it doesn't exist
-  await fs.ensureDir(path.dirname(filePath));
-
-  // Check if file exists
-  if (await fs.pathExists(filePath) && !options.force) {
-    const { overwrite } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'overwrite',
-      message: `Model file ${filePath} already exists. Overwrite?`,
-      default: false
-    }]);
-
-    if (!overwrite) {
-      console.log(chalk.yellow('Model generation cancelled.'));
-      return;
-    }
+  async execute(): Promise<void> {
+    await this.generateModel();
   }
-
-  await fs.writeFile(filePath, content);
-  console.log(chalk.green(`✓ Model ${modelName} generated successfully at ${filePath}`));
+  
+  async generateModel(name?: string, options: GenerateModelOptions = { path: './src/models', force: false }): Promise<void> {
+    // If name is not provided, prompt for it
+    const modelName = name || (await inquirer.prompt([{
+      type: 'input',
+      name: 'name',
+      message: 'What is the name of your model?',
+      validate: (input: string) => input.length > 0 ? true : 'Model name is required'
+    }])).name;
+  
+    // Prompt for attributes
+    const attributes = await promptForAttributes();
+    
+    // Prompt for relations
+    const relations = await promptForRelations();
+  
+    const modelData: ModelAttributes = {
+      name: modelName,
+      attributes,
+      relations
+    };
+  
+    // Generate the model file
+    const content = template({
+      ...modelData,
+      resourceName: modelName.toLowerCase() + 's'
+    });
+  
+    const filePath = path.join(options.path, `${modelName}.ts`);
+    
+    // Create directory if it doesn't exist
+    await fs.ensureDir(path.dirname(filePath));
+  
+    // Check if file exists
+    if (await fs.pathExists(filePath) && !options.force) {
+      const { overwrite } = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'overwrite',
+        message: `Model file ${filePath} already exists. Overwrite?`,
+        default: false
+      }]);
+  
+      if (!overwrite) {
+        console.log(chalk.yellow('Model generation cancelled.'));
+        return;
+      }
+    }
+  
+    await fs.writeFile(filePath, content);
+    console.log(chalk.green(`✓ Model ${modelName} generated successfully at ${filePath}`));
+  }
 }
 
 async function promptForAttributes(): Promise<Array<{ name: string; type: string; required: boolean }>> {
