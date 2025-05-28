@@ -22,6 +22,10 @@ interface {{name}}Attributes {
 export class {{name}} extends Model<{{name}}Attributes> {
   static resource = '{{resourceName}}';
 
+  {{#each attributes}}
+  declare {{name}}{{#unless required}}?{{/unless}}: {{type}};
+  {{/each}}
+
   {{#each relations}}
   @{{type}}(() => {{model}})
   {{name}}!: {{#if (eq type 'hasOne')}}{{model}}{{else}}{{model}}[]{{/if}};
