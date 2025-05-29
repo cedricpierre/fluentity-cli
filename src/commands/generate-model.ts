@@ -2,73 +2,28 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import Handlebars from 'handlebars';
+import modelStub, { AttributeDefinition, ModelDefinition, RelationshipDefinition } from '../model.stub.js';
 
-// Move template to a separate file to avoid minification issues
-const modelTemplate = `
-import { Model, attribute, hasOne, hasMany } from '@fluentity/core';
 
-{{#each relations}}
-import { {{model}} } from './{{model}}';
-{{/each}}
-
-interface {{name}}Attributes {
-  {{#each attributes}}
-  {{name}}{{#unless required}}?{{/unless}}: {{type}};
-  {{/each}}
-}
-
-export class {{name}} extends Model<{{name}}Attributes> {
-  static resource = '{{resourceName}}';
-
-  {{#each attributes}}
-  declare {{name}}{{#unless required}}?{{/unless}}: {{type}};
-  {{/each}}
-
-  {{#each relations}}
-  @{{type}}(() => {{model}})
-  {{name}}!: {{#if (eq type 'hasOne')}}{{model}}{{else}}{{model}}[]{{/if}};
-  {{/each}}
-}
-`.trim();
-
-// Register handlebars helper
-Handlebars.registerHelper('eq', function(a: unknown, b: unknown): boolean {
-  return a === b;
-});
-
-const template = Handlebars.compile(modelTemplate);
 
 export interface GenerateModelOptions {
   path: string;
   force: boolean;
 }
 
-export interface ModelAttributes {
-  name: string;
-  attributes: Array<{
-    name: string;
-    type: string;
-    required: boolean;
-  }>;
-  relations: Array<{
-    name: string;
-    type: 'hasOne' | 'hasMany';
-    model: string;
-  }>;
-}
 
 export class GenerateModel {
-  constructor(private name?: string, private options: GenerateModelOptions = { path: './src/models', force: false }) {}
+  constructor(private name?: string, private options: GenerateModelOptions = { path: './models', force: false }) {
+    
+  }
 
   async execute(): Promise<void> {
     await this.generateModel();
   }
   
-  async generateModel(name?: string, options: GenerateModelOptions = { path: './src/models', force: false }): Promise<void> {
+  async generateModel() {
     // If name is not provided, prompt for it
-    const modelName = name || (await inquirer.prompt([{
+    const modelName = this.name || (await inquirer.prompt([{
       type: 'input',
       name: 'name',
       message: 'What is the name of your model?',
@@ -81,19 +36,18 @@ export class GenerateModel {
     // Prompt for relations
     const relations = await promptForRelations();
   
-    const modelData: ModelAttributes = {
+    const modelData: ModelDefinition = {
       name: modelName,
-      attributes,
-      relations
+      resource: modelName.toLowerCase(),
+      attributes: attributes,
+      properties: attributes,
+      relationships: relations
     };
+
+    const content = modelStub(modelData);
   
-    // Generate the model file
-    const content = template({
-      ...modelData,
-      resourceName: modelName.toLowerCase() + 's'
-    });
-  
-    const filePath = path.join(options.path, `${modelName}.ts`);
+
+    const filePath = path.join(this.options.path, `${modelName}.ts`);
     
     // Create directory if it doesn't exist
     await fs.ensureDir(path.dirname(filePath));
@@ -118,8 +72,8 @@ export class GenerateModel {
   }
 }
 
-async function promptForAttributes(): Promise<Array<{ name: string; type: string; required: boolean }>> {
-  const attributes: Array<{ name: string; type: string; required: boolean }> = [];
+async function promptForAttributes(): Promise<Array<AttributeDefinition>> {
+  const attributes: Array<AttributeDefinition> = [];
   
   while (true) {
     const { addAttribute } = await inquirer.prompt([{
@@ -142,15 +96,21 @@ async function promptForAttributes(): Promise<Array<{ name: string; type: string
         type: 'list',
         name: 'type',
         message: 'Attribute type:',
-        choices: ['string', 'number', 'boolean', 'Date', 'object', 'type']
+        choices: ['string', 'number', 'boolean', 'any', 'other']
       },
       {
         type: 'input',
         name: 'typeName',
         message: 'Type name:',
-        when: (answers) => answers.type === 'type',
-        validate: (input: string) => input.length > 0 ? true : 'Type name is required'
+        when: (answers) => answers.type === 'other',
+        validate: (input: string) => input.length > 0 ? true : 'Type is required',
       },
+      {
+        type: 'confirm',
+        name: 'isArray',
+        message: 'Is this attribute an array?',
+        default: false
+      },      
       {
         type: 'confirm',
         name: 'required',
@@ -161,7 +121,7 @@ async function promptForAttributes(): Promise<Array<{ name: string; type: string
 
     attribute.name = attribute.name.toLowerCase();
 
-    if (attribute.type === 'type') {
+    if (attribute.type === 'other') {
       attribute.type = attribute.typeName.charAt(0).toUpperCase() + attribute.typeName.slice(1);
     }
 
@@ -171,8 +131,8 @@ async function promptForAttributes(): Promise<Array<{ name: string; type: string
   return attributes;
 }
 
-async function promptForRelations(): Promise<Array<{ name: string; type: 'hasOne' | 'hasMany'; model: string }>> {
-  const relations: Array<{ name: string; type: 'hasOne' | 'hasMany'; model: string }> = [];
+async function promptForRelations(): Promise<Array<RelationshipDefinition>> {
+  const relations: Array<RelationshipDefinition> = [];
   
   while (true) {
     const { addRelation } = await inquirer.prompt([{
@@ -195,7 +155,7 @@ async function promptForRelations(): Promise<Array<{ name: string; type: 'hasOne
         type: 'list',
         name: 'type',
         message: 'Relation type:',
-        choices: ['hasOne', 'hasMany']
+        choices: ['HasOne', 'HasMany', 'BelongsTo', 'BelongsToMany']
       },
       {
         type: 'input',
@@ -207,6 +167,8 @@ async function promptForRelations(): Promise<Array<{ name: string; type: 'hasOne
 
     relation.model = relation.model.charAt(0).toUpperCase() + relation.model.slice(1);
     relation.name = relation.name.toLowerCase();
+    relation.isArray = ['HasMany', 'BelongsToMany'].includes(relation.type);
+    relation.required = true;
 
     relations.push(relation);
   }

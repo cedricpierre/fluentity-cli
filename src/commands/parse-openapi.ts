@@ -4,20 +4,8 @@ import { join } from 'path';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { OpenAPIV3 } from 'openapi-types';
 import chalk from 'chalk';
-
-interface ModelDefinition {
-  name: string;
-  attributes: string;
-  relationships: RelationshipDefinition[];
-  resource: string;
-}
-
-interface RelationshipDefinition {
-  name: string;
-  type: 'HasOne' | 'HasMany' | 'BelongsTo' | 'BelongsToMany';
-  model: string;
-  foreignKey?: string;
-}
+import { AttributeDefinition, ModelDefinition, PropertyDefinition, RelationshipDefinition } from '../model.stub.js';
+import modelStub from '../model.stub.js';
 
 export class OpenAPIParser {
   private spec: OpenAPIV3.Document;
@@ -37,6 +25,7 @@ export class OpenAPIParser {
         this.spec = JSON.parse(readFileSync(this.specPath, 'utf-8')) as OpenAPIV3.Document;
         this.parse();
     } catch (error) {
+      console.log(error);
         console.log(chalk.red("Error parsing OpenAPI schema"));
     }
   }
@@ -57,15 +46,19 @@ export class OpenAPIParser {
     
     if (!schema.properties) return relationships;
 
-    for (const [propName, propSchema] of Object.entries(schema.properties)) {
+    const filteredProperties = Object.entries(schema.properties).filter(([_, propSchema]) => {
+      const typedSchema = propSchema as OpenAPIV3.SchemaObject;
+      return typedSchema.$ref || (typedSchema.type === 'array' && typedSchema.items?.$ref);
+    });
+
+    for (const [propName, propSchema] of filteredProperties) {
       const typedSchema = propSchema as OpenAPIV3.SchemaObject;
       if (typeof typedSchema === 'boolean') continue;
 
       // Handle array of references (HasMany or BelongsToMany)
       if (typedSchema.type === 'array' && typedSchema.items) {
-        const items = typedSchema.items as OpenAPIV3.SchemaObject;
-        if (items.$ref) {
-          const refModel = this.getModelNameFromRef(items.$ref);
+        if (typedSchema.items.$ref) {
+          const refModel = this.getModelNameFromRef(typedSchema.items.$ref);
           relationships.push({
             name: propName,
             type: 'HasMany',
@@ -95,29 +88,63 @@ export class OpenAPIParser {
     return this.toPascalCase(parts[parts.length - 1]);
   }
 
-  private generateAttributesInterface(schema: OpenAPIV3.SchemaObject): string {
-    if (!schema.properties) return '';
+  private generateProperties(schema: OpenAPIV3.SchemaObject): PropertyDefinition[] {
+    if (!schema.properties) return [];
+    const properties = [] as PropertyDefinition[];
 
-    const attributes: string[] = [];
-    for (const [propName, propSchema] of Object.entries(schema.properties)) {
+    const filteredProperties = Object.entries(schema.properties).filter(([_, propSchema]) => {
       const typedSchema = propSchema as OpenAPIV3.SchemaObject;
-      if (typeof typedSchema === 'boolean') continue;
+      return !typedSchema.$ref && !(typedSchema.type === 'array' && typedSchema.items?.$ref);
+    });
+    for (let [propName, propSchema] of filteredProperties) {
+      const typedSchema = propSchema as OpenAPIV3.SchemaObject;
 
       let type = 'any';
-      if (typedSchema.type === 'array') {
-        const items = typedSchema.items as OpenAPIV3.SchemaObject;
-        type = items.$ref ? `${this.getModelNameFromRef(items.$ref)}[]` : 'any[]';
-      } else if (typedSchema.$ref) {
-        type = this.getModelNameFromRef(typedSchema.$ref);
-      } else {
-        type = this.mapOpenAPITypeToTypeScript(typedSchema.type as string);
-      }
-
+      let isArray = typedSchema.type === 'array';
       const isOptional = !schema.required?.includes(propName);
-      attributes.push(`${propName}${isOptional ? '?' : ''}: ${type};`);
+
+      
+      properties.push({
+        name: propName,
+        type,
+        isArray: isArray,
+        required: !isOptional
+      });
+    
     }
 
-    return attributes.join('\n');
+    return properties;
+  }
+
+  private generateAttributesInterface(schema: OpenAPIV3.SchemaObject): AttributeDefinition[] {
+    if (!schema.properties) return [];
+
+    const attributes = [] as AttributeDefinition[];
+    for (let [propName, propSchema] of Object.entries(schema.properties)) {
+      const typedSchema = propSchema as OpenAPIV3.SchemaObject;
+
+      let type = 'any';
+      let isArray = typedSchema.type === 'array';
+      let isOptional = false
+
+      if (typedSchema.$ref) {
+        type = this.getModelNameFromRef(typedSchema.$ref);
+      } else if (typedSchema.type === 'array' && typedSchema.items?.$ref) {
+        type = this.getModelNameFromRef(typedSchema.items.$ref);
+      } else {
+        type = this.mapOpenAPITypeToTypeScript(typedSchema.type as string);
+        isOptional = !schema.required?.includes(propName);
+      }
+
+      attributes.push({
+        name: propName,
+        type,
+        isArray: isArray,
+        required: !isOptional
+      });
+    }
+
+    return attributes
   }
 
   private mapOpenAPITypeToTypeScript(type: string): string {
@@ -127,58 +154,13 @@ export class OpenAPIParser {
       integer: 'number',
       boolean: 'boolean',
       object: 'Record<string, any>',
-      array: 'any[]'
+      array: 'any'
     };
     return typeMap[type] || 'any';
   }
 
   private generateModelFile(model: ModelDefinition): string {
-    const imports = [
-      "import { Model, Attributes } from '@fluentity/core';",
-      "import { HasOne, HasMany, BelongsTo, BelongsToMany, Relation } from '@fluentity/core';"
-    ];
-
-    // Add imports for related models
-    const relatedModels = new Set(model.relationships.map(r => r.model));
-    relatedModels.forEach(relatedModel => {
-      imports.push(`import { ${relatedModel} } from './${this.toCamelCase(relatedModel)}';`);
-    });
-
-    const properties = model.attributes.split('\n').map(attr => `  declare ${attr}`);
-
-    const relationshipProperties = model.relationships.map(rel => {
-      const decoratorName = rel.type;
-      const decorator = `  @${decoratorName}(() => ${rel.model})`;
-
-      const isArray = rel.type === 'HasMany' || rel.type === 'BelongsToMany';
-      return `${decorator}\n  ${isArray ? this.pluralize(rel.name) : rel.name}: Relation<${rel.model}${isArray ? '[]' : ''}>;`;
-    });
-
-    return `${imports.join('\n')}
-
-/**
- * Interface defining the attributes for a ${model.name} model
- * @interface ${model.name}Attributes
- * @extends {Attributes}
- */
-export interface ${model.name}Attributes extends Attributes {
-${model.attributes}
-}
-
-/**
- * ${model.name} model class for interacting with the ${model.resource} API endpoint
- * @class ${model.name}
- * @extends {Model<${model.name}Attributes>}
- */
-export class ${model.name} extends Model<${model.name}Attributes> {
-  /** The API endpoint resource name for this model */
-  static resource = '${model.resource}';
-
-${properties.join('\n')}
-
-${relationshipProperties.join('\n\n')}
-}
-`;
+    return modelStub(model);
   }
 
   public parse(): void {
@@ -193,11 +175,13 @@ ${relationshipProperties.join('\n\n')}
         const modelName = this.toPascalCase(schemaName);
         const resource = this.pluralize(schemaName);
         const attributes = this.generateAttributesInterface(schema);
+        const properties = this.generateProperties(schema);
         const relationships = this.detectRelationships(schema, modelName);
 
         this.models.set(modelName, {
           name: modelName,
           attributes,
+          properties,
           relationships,
           resource
         });

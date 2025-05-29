@@ -10,7 +10,7 @@
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target node",
     "start": "bun ./bin/fluentity.js",
-    "dev": "bun build ./src/index.ts --outdir ./dist --watch --target node",
+    "dev": "bun build ./src/index.ts --minify --outdir ./dist --watch --target node",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
     "test:ui": "bun test --ui"

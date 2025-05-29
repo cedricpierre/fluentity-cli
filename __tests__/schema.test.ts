@@ -28,7 +28,7 @@ describe('fluentity parse:openapi', () => {
   test('should parse a valid OpenAPI schema file', async () => {
     // Create a temporary OpenAPI schema file
     const schemaPath = path.join(__dirname, 'test-schema.json');
-    const modelsDir = path.join(__dirname, '../src/models');
+    const modelsDir = path.join(__dirname, '../models');
     
     try {
       const { stdout } = await execAsync(`${cliPath} parse:openapi "${schemaPath}" --path "${modelsDir}"`);
@@ -47,7 +47,7 @@ describe('fluentity parse:openapi', () => {
       expect(modelContent).toContain('export class User extends Model');
       expect(modelContent).toContain('id: number');
       expect(modelContent).toContain('name: string');
-      expect(modelContent).toContain('email: string');
+      expect(modelContent).toContain('email?: string');
     } finally {
       // Cleanup
       //await fs.remove(modelsDir);

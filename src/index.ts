@@ -16,7 +16,7 @@ program
   .command('generate:model')
   .description('Generate a new Fluentity model')
   .argument('[name]', 'Name of the model to generate')
-  .option('-p, --path <path>', 'Path where the model should be generated', './src/models')
+  .option('-p, --path <path>', 'Path where the model should be generated', './models')
   .option('-f, --force', 'Overwrite existing model file if it exists')
   .action(async (name, options) => {
     try {
@@ -32,7 +32,7 @@ program
   .command('parse:openapi')
   .description('Parse an OpenAPI schema file and generate models')
   .argument('<schema>', 'Path to the OpenAPI schema file')
-  .option('-p, --path <path>', 'Path where the model should be generated', './src/models')
+  .option('-p, --path <path>', 'Path where the model should be generated', './models')
   .action(async (schema, options) => {
     try {
       const parser = await new OpenAPIParser(schema, options)
